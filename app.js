@@ -1,15 +1,16 @@
 #!/usr/bin/env node
 const Web3 = require('web3');
-const {createCanvas, loadImage} = require('canvas')
+const { createCanvas, loadImage } = require('canvas')
 Canvas = require('canvas');
 const fs = require('fs');
 const express = require("express");
 
 
-const app = express();
-let port = process.env.PORT || 3000;
 
-let blocknum = fs.readFile('block.txt', 'utf-8', function (err, data) {
+const app = express();
+let port = process.env.PORT || 80;
+
+var blocknum = fs.readFile('block.txt', 'utf-8', function(err, data) {
   console.log("Got data back from file", data)
 });
 
@@ -17,7 +18,7 @@ app.listen(port, () => {
   console.log("Example app is listening on port http://localhost:" + port)
 })
 
-app.all('*', function (req, res, next) {
+app.all('*', function(req, res, next) {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Headers", "X-Requested-With");
   next()
@@ -26,7 +27,9 @@ app.all('*', function (req, res, next) {
 app.use(express.static("public"));
 
 
-let options = {
+
+
+var options = {
   timeout: 30000, // ms
 
   // Useful for credentialed urls, e.g: ws://username:password@localhost:8546
@@ -53,10 +56,28 @@ let options = {
   }
 };
 
-let web3 = new Web3(new Web3.providers.WebsocketProvider('wss://ws.s0.pops.one/', options));
-
+let web3 = new Web3(new Web3.providers.WebsocketProvider('wss://ws.s0.t.hmny.io/', options));
 
 const abi = [
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "previousOwner",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "OwnershipTransferred",
+    "type": "event"
+  },
   {
     "anonymous": false,
     "inputs": [
@@ -93,32 +114,6 @@ const abi = [
     ],
     "name": "PixelChanged",
     "type": "event"
-  },
-  {
-    "inputs": [],
-    "name": "NumberPixelChanged",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "basePrice",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
   },
   {
     "inputs": [
@@ -168,12 +163,78 @@ const abi = [
   },
   {
     "inputs": [],
+    "name": "renounceOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "transferOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "withdraw",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "basePrice",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "getBalance",
     "outputs": [
       {
         "internalType": "uint256",
         "name": "",
         "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "NumberPixelChanged",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "owner",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
       }
     ],
     "stateMutability": "view",
@@ -241,31 +302,14 @@ const abi = [
     ],
     "stateMutability": "view",
     "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
-      }
-    ],
-    "name": "withdraw",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "function"
   }
 ];
 
-const address = '0x7a1f208DD13E43cD974ABAFB0B8a1BACfa009f81';
+const address = '0xF7EFBc5D75dd12a9bDEeF17c04AB42BC53DF0D3b';
 
 const contract = new web3.eth.Contract(abi, address);
+
+console.log(contract)
 
 
 const canvas = createCanvas(1000, 1000)
@@ -279,16 +323,19 @@ loadImage('./canvas.png').then(image => {
   fs.writeFileSync('./test.png', buffer)
 
 
-  let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
   console.log(imageData)
+
+
+
 
 
   let data = imageData.data;
   console.log(canvas.width, canvas.height, data.length);
 
   function writePixelWithEvent(event) {
-    let {x, y, color} = event.returnValues;
+    let { x, y, color } = event.returnValues;
     writePixel(
       parseInt(x),
       parseInt(y),
@@ -344,7 +391,8 @@ loadImage('./canvas.png').then(image => {
     // You could certainly batch these updates, but we're not going to, just for
     // simplicity.
     ctx.putImageData(imageData, 0, 0);
-    let dataurl = canvas.toDataURL('image/png');
+    var dataurl = canvas.toDataURL('image/png');
+
 
 
     fs.writeFile("./public/dataURL.txt", dataurl, (err) => {
@@ -356,31 +404,15 @@ loadImage('./canvas.png').then(image => {
     });
   }
 
-  let nb = 0;
-  contract.getPastEvents(
-    'PixelChanged',
-    {
-      fromBlock: 14352635
-    },
-    function (error, events) {
-
-      //console.log('event : ', events);
-      if (events !== undefined) {
-        events.map(e => writePixelWithEvent(e));
-        nb++;
-        console.log(nb)
-      }
-    }
-  );
-
+  var nb = 0;
   contract.events.PixelChanged(
     {
-      fromBlock: 14352635
+      fromBlock: 16645922
     },
-    function (error, event) {
+    function(error, event) {
       //console.log('new event : ', event);
       console.log(error);
-      if (event !== undefined || event !== null) {
+      if (event != undefined && event != null) {
         writePixelWithEvent(event);
         nb++;
         console.log(nb)
@@ -388,7 +420,10 @@ loadImage('./canvas.png').then(image => {
 
     }
   );
+
+
 })
+
 
 process.on('SIGTERM', () => {
   console.info('Received SIGTERM');
@@ -410,4 +445,15 @@ process.on('SIGTERM', () => {
   });*/
   process.exit(0);
 });
+
+
+
+
+
+
+
+
+
+
+
 
